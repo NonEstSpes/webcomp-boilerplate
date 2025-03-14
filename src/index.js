@@ -54,7 +54,8 @@ class AppContainer extends HTMLElement {
 
   createPolygons() {
     const count = Math.floor(Math.random() * 16) + 5;
-    let offsetX = 0;// от 5 до 20 полигонов
+    let offsetX = 0;
+
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('draggable', 'true');
     svg.setAttribute('width', '200px');
@@ -72,14 +73,35 @@ class AppContainer extends HTMLElement {
       const polygon = document.createElementNS(svg.namespaceURI, 'polygon');
       polygon.setAttribute('points', points.join(' '));
       polygon.setAttribute('fill', 'red');
-
-      // Добавляем обработчики Drag & Drop
-      polygon.addEventListener('dragstart', (e) => {
-        e.dataTransfer.setData('text/plain', e.target.outerHTML);
-        setTimeout(() => e.target.remove(), 0);
-      });
       svg.appendChild(polygon);
     }
+
+    svg.addEventListener('mousedown', (e) => {
+      let shiftX = e.clientX - svg.getBoundingClientRect().left;
+      let shiftY = e.clientY - svg.getBoundingClientRect().top;
+
+      svg.style.position = 'absolute';
+      svg.style.zIndex = 1000;
+      document.body.append(svg)
+
+      moveAt(e.pageX, e.pageY)
+
+      function moveAt(pageX, pageY) {
+        svg.style.left = pageX - shiftX + 'px';
+        svg.style.top = pageY - shiftY + 'px';
+      }
+
+      function onMouseMove(event) {
+        moveAt(event.pageX, event.pageY);
+      }
+
+      document.addEventListener('mousemove', onMouseMove);
+
+      svg.onmouseup = function() {
+        document.removeEventListener('mousemove', onMouseMove);
+        svg.onmouseup = null;
+      };
+    });
     this.bufferZone.addPolygon(svg);
   }
 
@@ -98,10 +120,8 @@ customElements.define('app-container', AppContainer);
 class BufferZone extends HTMLElement {
   constructor() {
     super();
-    this.attachShadow({ mode: 'open' });
-
-    const template = document.createElement('template');
-    template.innerHTML = `
+    const shadow = this.attachShadow({ mode: 'open' });
+    shadow.innerHTML = `
       <style>
         :host {
           display: block;
@@ -117,8 +137,6 @@ class BufferZone extends HTMLElement {
       </style>
       <div class="container"></div>
     `;
-
-    this.shadowRoot.appendChild(template.content.cloneNode(true));
     this.container = this.shadowRoot.querySelector('.container');
   }
 
@@ -136,10 +154,9 @@ customElements.define('buffer-zone', BufferZone);
 class WorkingArea extends HTMLElement {
   constructor() {
     super();
-    this.attachShadow({ mode: 'open' });
+    const shadow = this.attachShadow({ mode: 'open' });
 
-    const template = document.createElement('template');
-    template.innerHTML = `
+    shadow.innerHTML = `
       <style>
         :host {
           display: block;
@@ -172,8 +189,6 @@ class WorkingArea extends HTMLElement {
       </svg>
       <div id="content"></div>
     `;
-
-    this.shadowRoot.appendChild(template.content.cloneNode(true));
     this.content = this.shadowRoot.querySelector('#content');
     this.scale = 1;
 
