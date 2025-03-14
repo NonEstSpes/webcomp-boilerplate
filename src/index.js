@@ -9,6 +9,9 @@ class AppContainer extends HTMLElement {
           display: flex;
           flex-direction: column;
           height: 100%;
+          position: relative;
+          z-index: 2;
+          overflow: hidden;
         }
         .toolbar {
           background-color: #333;
@@ -56,39 +59,39 @@ class AppContainer extends HTMLElement {
     const count = Math.floor(Math.random() * 16) + 5;
     let offsetX = 0;
 
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('draggable', 'true');
-    svg.setAttribute('width', '200px');
-    svg.setAttribute('height', '200px');
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    g.setAttribute('draggable', 'true');
+    g.setAttribute('width', '200px');
+    g.setAttribute('height', '200px');
 
     for (let i = 0; i < count; i++) {
       const points = [];
-      const vertexCount = Math.floor(Math.random() * 5) + 3; // от 3 до 7 вершин
+      const vertexCount = Math.floor(Math.random() * 5) + 3;
       for (let j = 0; j < vertexCount; j++) {
-        const x = Math.random() * 100 + offsetX; // Смещаем полигон по X
+        const x = Math.random() * 100 + offsetX;
         const y = Math.random() * 100;
         points.push(`${x},${y}`);
       }
 
-      const polygon = document.createElementNS(svg.namespaceURI, 'polygon');
+      const polygon = document.createElementNS(g.namespaceURI, 'polygon');
       polygon.setAttribute('points', points.join(' '));
       polygon.setAttribute('fill', 'red');
-      svg.appendChild(polygon);
+      g.appendChild(polygon);
     }
 
-    svg.addEventListener('mousedown', (e) => {
-      let shiftX = e.clientX - svg.getBoundingClientRect().left;
-      let shiftY = e.clientY - svg.getBoundingClientRect().top;
+    g.addEventListener('mousedown', (e) => {
+      let shiftX = e.clientX - g.getBoundingClientRect().left;
+      let shiftY = e.clientY - g.getBoundingClientRect().top;
 
-      svg.style.position = 'absolute';
-      svg.style.zIndex = 1000;
-      document.body.append(svg)
+      g.style.position = 'absolute';
+      g.style.zIndex = 1000;
+      document.body.append(g)
 
       moveAt(e.pageX, e.pageY)
 
       function moveAt(pageX, pageY) {
-        svg.style.left = pageX - shiftX + 'px';
-        svg.style.top = pageY - shiftY + 'px';
+        g.style.left = pageX - shiftX + 'px';
+        g.style.top = pageY - shiftY + 'px';
       }
 
       function onMouseMove(event) {
@@ -97,12 +100,12 @@ class AppContainer extends HTMLElement {
 
       document.addEventListener('mousemove', onMouseMove);
 
-      svg.onmouseup = function() {
+      g.onmouseup = function() {
         document.removeEventListener('mousemove', onMouseMove);
-        svg.onmouseup = null;
+        g.onmouseup = null;
       };
     });
-    this.bufferZone.addPolygon(svg);
+    this.bufferZone.addPolygon(g);
   }
 
   savePolygons() {
@@ -128,6 +131,8 @@ class BufferZone extends HTMLElement {
           padding: 10px;
           background-color: #444;
           height: 50%;
+          position: relative;
+          z-index: 1;
         }
         .container {
           display: flex;
@@ -155,24 +160,22 @@ class WorkingArea extends HTMLElement {
   constructor() {
     super();
     const shadow = this.attachShadow({ mode: 'open' });
-
     shadow.innerHTML = `
       <style>
         :host {
           display: block;
-          position: relative;
           overflow: auto;
           height: 50%;
+          position: relative;
+          z-index: -1;
         }
         svg {
           position: absolute;
-          top: 0;
-          left: 0;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
           width: 100%;
           height: 100%;
-        }
-        #content {
-          position: relative;
         }
       </style>
       <svg xmlns="http://www.w3.org/2000/svg">
@@ -187,13 +190,39 @@ class WorkingArea extends HTMLElement {
         </defs>
         <rect width="100%" height="100%" fill="url(#grid)"/>
       </svg>
-      <div id="content"></div>
     `;
-    this.content = this.shadowRoot.querySelector('#content');
-    this.scale = 1;
+    this.scale = 4;
+    this.style.transform = `scale(${this.scale})`;
+    const workingArea = this.shadowRoot.querySelector('svg');
+
+    let prevX = 0
+    let prevY = 0
 
     this.initZoom();
-    this.initDrag();
+
+    this.addEventListener('mousedown', (e) => {
+      if (e.target.tagName === 'g') return
+      prevX = e.target.offsetX;
+      prevY = e.target.offsetY;
+
+      function onMouseMove(event) {
+        const style = window.getComputedStyle(workingArea).transform.split(',')
+        const [x, y] = [parseInt(style[4]), parseInt(style[5].split(')')[0])]
+        workingArea.style.transform = `translate(
+          ${x + event.pageX - prevX + 'px'},
+          ${y + event.pageY - prevY + 'px'})
+        `;
+        prevX = event.pageX;
+        prevY = event.pageY;
+        console.log(workingArea.style.transform);
+      }
+      document.addEventListener('mousemove', onMouseMove);
+
+      workingArea.onmouseup = () => {
+        document.removeEventListener('mousemove', onMouseMove);
+        workingArea.onmouseup = null;
+      };
+    });
   }
 
   initZoom() {
@@ -201,35 +230,9 @@ class WorkingArea extends HTMLElement {
       e.preventDefault();
       const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
       this.scale *= zoomFactor;
+      if(this.scale <= 1) this.scale = 1;
+      if(this.scale >= 10) this.scale = 10;
       this.style.transform = `scale(${this.scale})`;
-    });
-  }
-
-  initDrag() {
-    let startX = 0, startY = 0, scrollLeft = 0, scrollTop = 0;
-
-    this.addEventListener('mousedown', (e) => {
-      if (e.target.tagName !== 'svg') return;
-      startX = e.pageX;
-      startY = e.pageY;
-      scrollLeft = this.scrollLeft;
-      scrollTop = this.scrollTop;
-    });
-
-    this.addEventListener('mousemove', (e) => {
-      if (!startX && !startY) return;
-      const dx = e.pageX - startX;
-      const dy = e.pageY - startY;
-      this.scrollLeft = scrollLeft - dx;
-      this.scrollTop = scrollTop - dy;
-    });
-
-    this.addEventListener('mouseup', () => {
-      startX = startY = 0;
-    });
-
-    this.addEventListener('mouseleave', () => {
-      startX = startY = 0;
     });
   }
 
@@ -243,16 +246,3 @@ class WorkingArea extends HTMLElement {
 }
 
 customElements.define('working-area', WorkingArea);
-
-// Обработка Drop событий
-document.querySelectorAll('buffer-zone, working-area').forEach((zone) => {
-  zone.addEventListener('dragover', (e) => e.preventDefault());
-  zone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    const data = e.dataTransfer.getData('text/plain');
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = data;
-    const polygon = tempDiv.querySelector('svg');
-    zone.addPolygon(polygon);
-  });
-});
