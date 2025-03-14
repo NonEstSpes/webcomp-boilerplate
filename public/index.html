@@ -1,37 +1,65 @@
-<!--
-SPDX-FileCopyrightText: NOI Techpark <digital@noi.bz.it>
-
-SPDX-License-Identifier: CC0-1.0
--->
-
-<!-- Example of how you implement a webcomponent in a website -->
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" href="data:,">
-  <title>Hello World!</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SVG Polygon Manager</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .toolbar {
+      background-color: #333;
+      color: white;
+      padding: 10px;
+      display: flex;
+      justify-content: space-between;
+    }
+    buffer-zone {
+      border: 1px solid #ccc;
+      padding: 10px;
+      background-color: #444;
+      min-height: 200px;
+      overflow: auto;
+    }
+    working-area {
+      flex: 1;
+      border: 1px solid #ccc;
+      position: relative;
+      background-color: #444;
+      overflow: auto;
+      min-height: 200px;
+
+    }
+    svg {
+      width: 100px;
+      height: 100px;
+      cursor: grab;
+    }
+    polygon {
+      fill: #c00;
+      stroke: #fff;
+      stroke-width: 2;
+    }
+    .grid-line {
+      stroke: #666;
+      stroke-dasharray: 5, 5;
+    }
+  </style>
 </head>
-
 <body>
+<app-container></app-container>
 
-  <h1>Web Component - Boilerplate & Helloworld</h1>
-
-  Code Snippet:
-  <pre><code>
-    &lt;hello-world title="Hello World!"&gt;&lt;/hello-world&gt;
-
-    &lt;script src="webcomp-boilerplate.js"&gt;&lt;/script&gt;
-  </code></pre>
-
-
-  Output:
-  <!-- Set the attribute "title" and refer to it as property in JS -->
-  <hello-world title="Hello World!" />
-  <script src="webcomp-boilerplate.js"></script>
-
+<script src="webcomp-boilerplate.js"></script>
 </body>
-
 </html>
