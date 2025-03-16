@@ -1,18 +1,8 @@
 class AppContainer extends HTMLElement {
   constructor() {
     super();
-    const shadow = this.attachShadow({ mode: 'open' });
-
-    shadow.innerHTML = `
+    this.innerHTML = `
       <style>
-        :host {
-          display: flex;
-          flex-direction: column;
-          height: 100%;
-          position: relative;
-          z-index: 2;
-          overflow: hidden;
-        }
         .toolbar {
           background-color: #333;
           color: white;
@@ -44,15 +34,18 @@ class AppContainer extends HTMLElement {
       <working-area></working-area>
     `;
 
-    this.createButton = this.shadowRoot.getElementById('createButton');
-    this.saveButton = this.shadowRoot.getElementById('saveButton');
-    this.resetButton = this.shadowRoot.getElementById('resetButton');
-    this.bufferZone = this.shadowRoot.querySelector('buffer-zone');
-    this.workingArea = this.shadowRoot.querySelector('working-area');
+    this.createButton = document.getElementById('createButton');
+    this.saveButton = document.getElementById('saveButton');
+    this.resetButton = document.getElementById('resetButton');
+    this.bufferZone = document.querySelector('buffer-zone');
+    this.workingArea = document.querySelector('working-area');
 
     this.createButton.addEventListener('click', () => this.createPolygons());
     this.saveButton.addEventListener('click', () => this.savePolygons());
     this.resetButton.addEventListener('click', () => this.resetPolygons());
+
+
+
   }
 
   createPolygons() {
@@ -60,9 +53,8 @@ class AppContainer extends HTMLElement {
     let offsetX = 0;
 
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    g.setAttribute('draggable', 'true');
-    g.setAttribute('width', '200px');
-    g.setAttribute('height', '200px');
+    g.setAttribute('width', '100px');
+    g.setAttribute('height', '100px');
 
     for (let i = 0; i < count; i++) {
       const points = [];
@@ -100,8 +92,17 @@ class AppContainer extends HTMLElement {
 
       document.addEventListener('mousemove', onMouseMove);
 
-      g.onmouseup = function() {
+      g.onmouseup = (e) => {
         document.removeEventListener('mousemove', onMouseMove);
+        g.style.display = 'none';
+        const elemBelow = document.elementFromPoint(e.clientX, e.clientY);
+        g.style.display = 'block';
+        if (elemBelow.tagName === 'WORKING-AREA') {
+          elemBelow.shadowRoot.appendChild(g);
+          console.log(g.style.top)
+          g.style.top = g.style.top.split('px')[0] * (elemBelow.clientHeight / window.innerHeight) + 'px'
+          console.log(g.style.top)
+        }
         g.onmouseup = null;
       };
     });
@@ -133,6 +134,7 @@ class BufferZone extends HTMLElement {
           height: 50%;
           position: relative;
           z-index: 1;
+          border: 1px solid #ccc;
         }
         .container {
           display: flex;
@@ -164,12 +166,13 @@ class WorkingArea extends HTMLElement {
       <style>
         :host {
           display: block;
-          overflow: auto;
+          overflow: hidden;
           height: 50%;
           position: relative;
           z-index: -1;
+          background-color: #444;
         }
-        svg {
+        .working-area {
           position: absolute;
           top: 50%;
           left: 50%;
@@ -178,14 +181,14 @@ class WorkingArea extends HTMLElement {
           height: 100%;
         }
       </style>
-      <svg xmlns="http://www.w3.org/2000/svg">
+      <svg xmlns="http://www.w3.org/2000/svg" class="working-area">
         <defs>
           <pattern id="smallGrid" width="10" height="10" patternUnits="userSpaceOnUse">
-            <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#666" stroke-width="0.5"/>
+            <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#6a6969" stroke-width="0.5"/>
           </pattern>
           <pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse">
             <rect width="100" height="100" fill="url(#smallGrid)"/>
-            <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#666" stroke-width="1"/>
+            <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#6a6969" stroke-width="1"/>
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#grid)"/>
@@ -193,7 +196,12 @@ class WorkingArea extends HTMLElement {
     `;
     this.scale = 4;
     this.style.transform = `scale(${this.scale})`;
-    const workingArea = this.shadowRoot.querySelector('svg');
+    let workingArea = this.shadowRoot.querySelector('svg');
+    console.log(
+      window.getComputedStyle(workingArea).left, window.getComputedStyle(workingArea).top,
+      workingArea.clientWidth, workingArea.clientHeight,
+      window.innerWidth, window.innerHeight
+      );
 
     let prevX = 0
     let prevY = 0
@@ -201,20 +209,21 @@ class WorkingArea extends HTMLElement {
     this.initZoom();
 
     this.addEventListener('mousedown', (e) => {
-      if (e.target.tagName === 'g') return
+      if (e.target.tagName === 'svg') return
       prevX = e.target.offsetX;
       prevY = e.target.offsetY;
 
       function onMouseMove(event) {
         const style = window.getComputedStyle(workingArea).transform.split(',')
         const [x, y] = [parseInt(style[4]), parseInt(style[5].split(')')[0])]
+
         workingArea.style.transform = `translate(
           ${x + event.pageX - prevX + 'px'},
           ${y + event.pageY - prevY + 'px'})
         `;
+
         prevX = event.pageX;
         prevY = event.pageY;
-        console.log(workingArea.style.transform);
       }
       document.addEventListener('mousemove', onMouseMove);
 
@@ -234,10 +243,6 @@ class WorkingArea extends HTMLElement {
       if(this.scale >= 10) this.scale = 10;
       this.style.transform = `scale(${this.scale})`;
     });
-  }
-
-  addPolygon(polygon) {
-    this.content.appendChild(polygon);
   }
 
   clearPolygons() {

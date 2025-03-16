@@ -10,56 +10,21 @@
       margin: 0;
       padding: 0;
       height: 100vh;
-      display: flex;
-      flex-direction: column;
+      overflow: hidden;
     }
     app-container {
       display: flex;
       flex-direction: column;
       height: 100%;
-    }
-    .toolbar {
-      background-color: #333;
-      color: white;
-      padding: 10px;
-      display: flex;
-      justify-content: space-between;
-    }
-    buffer-zone {
-      border: 1px solid #ccc;
-      padding: 10px;
-      background-color: #444;
-      min-height: 200px;
-      overflow: auto;
-    }
-    working-area {
-      flex: 1;
-      border: 1px solid #ccc;
       position: relative;
-      background-color: #444;
-      overflow: auto;
-      min-height: 200px;
+      z-index: 2;
+      overflow: hidden;
+    }
 
-    }
-    svg {
-      width: 100px;
-      height: 100px;
-      cursor: grab;
-    }
-    polygon {
-      fill: #c00;
-      stroke: #fff;
-      stroke-width: 2;
-    }
-    .grid-line {
-      stroke: #666;
-      stroke-dasharray: 5, 5;
-    }
   </style>
 </head>
 <body>
-<app-container></app-container>
-
-<script src="webcomp-boilerplate.js"></script>
+  <app-container></app-container>
+  <script src="webcomp-boilerplate.js"></script>
 </body>
 </html>
